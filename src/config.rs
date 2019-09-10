@@ -5,7 +5,7 @@ const USERNAME: &'static str = "bitcoinrpc";
 const PASSWORD: &'static str = "password";
 pub const TEST_URL: &'static str = "http://192.168.1.7:18332";
 
-#[warn(dead_code)]
+#[allow(dead_code)]
 pub const MAIN_URL: &'static str = "http://192.168.1.7:8332";
 const BASIC: &'static str = "Basic ";
 
