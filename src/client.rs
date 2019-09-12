@@ -2,13 +2,15 @@
 use reqwest::{Client as ReqClient, Response, Error};
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use crate::config;
-use std::sync::{Arc, Mutex};
 use crate::api::Param;
+use std::cell::Cell;
+use crate::json::blockchaininfo::BlockChainInfo;
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty};
 
 pub struct BitcoinRPC {
-    pub(crate) client: ReqClient,
+    pub client: ReqClient,
     // use for id, It's related to api::Param::id
-    nonce: Arc<Mutex<u64>>,
+    nonce: Cell<u64>,
 }
 
 impl BitcoinRPC {
@@ -20,17 +22,14 @@ impl BitcoinRPC {
                        HeaderValue::from_str(authorization.as_str()).unwrap());
         BitcoinRPC {
             client: reqwest::Client::builder().default_headers(headers).build().unwrap(),
-            nonce: Arc::new(Mutex::new(0)),
+            nonce: Cell::new(0),
         }
     }
 
-    fn last_nonce(&self) -> u64 {
-        *self.nonce.lock().unwrap()
-    }
-
     fn build_request(&self, method: &'static str, params: Vec<String>) -> Param {
-        let mut id = self.last_nonce();
-        id += 1;
+        let id = self.nonce.get() + 1;
+        self.nonce.set(id);
+        //jsonrpc must be '1.0' or '2.0'
         Param::new(method, id, params, "1.0")
     }
 
@@ -42,13 +41,40 @@ impl BitcoinRPC {
             .json(&params)
             .send()
     }
-}
 
-///Warper for BitcoinRPC, use for simplify code
-pub struct BitcoinRPCWarper(pub BitcoinRPC);
+    pub fn blockchaininfo(&self) -> Result<BlockChainInfo, Error> {
+        self
+            .send_raw("getblockchaininfo", Vec::new())
+            .expect("I didn't get blockchaininfo!")
+            .json()
+    }
 
-impl BitcoinRPCWarper {
-    pub fn new() -> Self {
-        BitcoinRPCWarper(BitcoinRPC::new())
+    pub fn block_count(&self) -> Result<BlockCount, Error> {
+        self
+            .send_raw("getblockcount", Vec::new())
+            .expect("I didn't get count!")
+            .json()
+    }
+
+    pub fn best_block_hash(&self) -> Result<BestBlockHash, Error> {
+        self
+            .send_raw("getbestblockhash", Vec::new())
+            .expect("I didn't get best block hash!")
+            .json()
+    }
+
+    pub fn connectioncount(&self) -> Result<ConnectionCount, Error> {
+        self
+            .send_raw("getconnectioncount", Vec::new())
+            .expect("I didn't get info!")
+            .json()
+    }
+
+    pub fn difficulty(&self) -> Result<Difficulty, Error> {
+        self
+            .send_raw("getdifficulty", Vec::new())
+            .expect("I didn't get info!")
+            .json()
     }
 }
+
