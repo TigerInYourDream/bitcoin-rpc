@@ -1,8 +1,9 @@
 use super::*;
+use crate::json::simple::Error;
 
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct BlockChainInfo {
-    error: Option<String>,
+    error: Option<Error>,
     id: u64,
     result: Option<BlockChainObject> ,
 }
