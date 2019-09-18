@@ -5,8 +5,9 @@ use crate::config;
 use crate::api::Param;
 use std::cell::Cell;
 use crate::json::blockchaininfo::BlockChainInfo;
-use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent};
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn};
 use serde_json::{Value, to_value};
+use std::collections::HashMap;
 
 pub struct BitcoinRPC {
     pub client: ReqClient,
@@ -129,6 +130,22 @@ impl BitcoinRPC {
 
         self
             .send_raw("listunspent", params.to_owned().to_vec())
+            .expect("I didn't get listunspent")
+            .json()
+    }
+
+    /// see more default at [https://bitcoincore.org/en/doc/0.18.0/rpc/rawtransactions/createrawtransaction/]
+    pub fn create_raw_transaction(&self, txid: String, vout: u64, to_address: String, amount: f64) -> Result<RawTransaction, Error> {
+        let mut address_amount = HashMap::new();
+        address_amount.insert(to_address, amount);
+
+        let params: [Value; 2] = [
+            to_value(&[TxIn::new(txid, vout)]).unwrap(),
+            to_value(&[address_amount]).unwrap(),
+        ];
+
+        self
+            .send_raw("createrawtransaction", params.to_owned().to_vec())
             .expect("I didn't get listunspent")
             .json()
     }

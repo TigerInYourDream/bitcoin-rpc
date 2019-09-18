@@ -9,6 +9,7 @@ pub struct Param {
     method: &'static str,
     //id for the request, it's will show in the response
     id: u64,
+    //use value for more flexible situations
     params: Vec<Value>,
     jsonrpc: &'static str,
 }

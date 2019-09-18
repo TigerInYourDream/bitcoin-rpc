@@ -98,3 +98,23 @@ pub struct UnspentOutput {
     txid: String,
     vout: u64,
 }
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct RawTransaction {
+    error: Option<Error>,
+    id: u64,
+    result: Option<String>,
+}
+
+/// use this struct for RawTransaction , use it in [client::BitcoinRPC::create_raw_transaction()]
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct TxIn {
+    txid: String,
+    vout: u64,
+}
+
+impl TxIn {
+    pub fn new(txid: String, vout: u64) -> Self {
+        Self { txid, vout }
+    }
+}
