@@ -5,16 +5,19 @@ use crate::config;
 use crate::api::Param;
 use std::cell::Cell;
 use crate::json::blockchaininfo::BlockChainInfo;
-use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn};
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo,
+                          ListWallets, AddressGroupings, Unspent, RawTransaction,
+                          TxIn, DecodeRawTransaction, SignRawTransactionWithWallet, PrevTX,
+                          Sendrawtransaction, SignRawTransactionWithWalletOutput};
 use serde_json::{Value, to_value};
 use std::collections::HashMap;
+use crate::json::simple;
 
 pub struct BitcoinRPC {
     pub client: ReqClient,
     // use for id, It's related to api::Param::id
     nonce: Cell<u64>,
 }
-
 
 impl BitcoinRPC {
     pub fn new() -> Self {
@@ -146,7 +149,49 @@ impl BitcoinRPC {
 
         self
             .send_raw("createrawtransaction", params.to_owned().to_vec())
-            .expect("I didn't get listunspent")
+            .expect("I didn't create_raw_transaction")
+            .json()
+    }
+
+    pub fn decode_raw_transaction(&self, hexstring: String) -> Result<DecodeRawTransaction, Error> {
+        let params = [
+            to_value(hexstring).unwrap(),
+        ];
+
+        self.
+            send_raw("decoderawtransaction", params.to_owned().to_vec())
+            .expect("I didn't get decode_raw_transaction")
+            .json()
+    }
+
+    ///see more detail at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/signrawtransactionwithwallet/]
+    /// hex is hexstring of raw transaction
+    /// you can also sign raw transaction with key ,see detail at [https://bitcoincore.org/en/doc/0.18.0/rpc/rawtransactions/signrawtransactionwithkey/]
+    ///
+    /// rawtransaction is a raw transaction hex string, it comes from create_raw_transaction's result
+    ///
+    /// txid vout and script_pub_key build prevtxs ( It's all comes from prevtxs you can find it in Result Value of function "list_unspent"
+    ///
+    pub fn sign_rawtransaction_with_wallet(&self, rawtransaction: String) -> Result<SignRawTransactionWithWallet, Error> {
+        let params = [
+            to_value(&rawtransaction).unwrap(),
+        ];
+
+        self
+            .send_raw("signrawtransactionwithwallet", params.to_owned().to_vec())
+            .expect("I didn't signrawtransactionwithwallet")
+            .json()
+    }
+
+    /// The pram allow_high_fee is set to allow high tx fee ,default = false.
+    pub fn send_rawtransaction(&self, signed_rawtransaction: String, allow_high_fee: Option<bool>) -> Result<Sendrawtransaction, Error> {
+        let params = [
+            to_value(&signed_rawtransaction).unwrap(),
+            to_value(allow_high_fee).unwrap(),
+        ];
+
+        self.send_raw("sendrawtransaction", params.to_owned().to_vec())
+            .expect("I didn't send the transaction")
             .json()
     }
 }

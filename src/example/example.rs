@@ -50,4 +50,31 @@ pub fn import_private_key(rpc: &BitcoinRPC) -> Result<(), reqwest::Error> {
 //        .send()?
 //        .json()?;
 //
-//    println!("createrawtransaction {:#?}", echo_json);
+//    println!("createrawtransaction }{:#?", echo_json);
+
+
+
+// sign_rawtransaction_with_wallet
+let echo_json: Value = rpc.client
+.post(config::TEST_URL)
+.json(
+& serde_json::json ! (
+{
+"jsonrpc": "1.0",
+"id": 10,
+"method": "signrawtransactionwithwallet",
+"params": [
+"02000000010c6e1b920c9b693db3c9e518a260335d962284f1976f4071fb62b793730e4ca10000000000ffffffff01a0860100000000001976a914ae7086368c8983429953dd2c2b3c79b1b3a0b60a88ac00000000",
+[
+{
+"txid": "a14c0e7393b762fb71406f97f18422965d3360a218e5c9b33d699b0c921b6e0c",
+"vout": 0,
+"scriptPubKey": "76a914dfa0d6f68ada97595dac908c2d9821650e385a1088ac",
+}
+]
+]
+}
+)
+)
+.send() ?
+.json() ?;

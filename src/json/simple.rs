@@ -3,7 +3,7 @@ use super::*;
 ///bitcoind Error object
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Error {
-    code: u64,
+    code: i64,
     message: String,
 }
 
@@ -118,3 +118,113 @@ impl TxIn {
         Self { txid, vout }
     }
 }
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct DecodeRawTransaction {
+    error: Option<Error>,
+    id: u64,
+    result: Option<DecodeRawTransactionOutput>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct DecodeRawTransactionOutput {
+    hash: String,
+    locktime: u64,
+    size: u64,
+    txid: String,
+    version: u64,
+    vin: Vec<Vin>,
+    vout: Vec<Vout>,
+    vsize: u64,
+    weight: u64,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct Vin {
+    scriptSig: ScriptSig,
+    sequence: u64,
+    txid: String,
+    vout: u64,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct ScriptSig {
+    asm: Option<String>,
+    hex: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct Vout {
+    n: u64,
+    scriptPubKey: ScriptPubKey,
+    value: f64,
+
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct ScriptPubKey {
+    addresses: Vec<String>,
+    asm: Option<String>,
+    hex: Option<String>,
+    reqSigs: u64,
+    #[serde(rename = "type")]
+    ty_pe: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct SignRawTransactionWithWallet {
+    error: Option<Error>,
+    id: u64,
+    result: Option<SignRawTransactionWithWalletOutput>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct SignRawTransactionWithWalletOutput {
+    complete: bool,
+    errors: Option<Vec<SignRawTransactionWithWalletError>>,
+    hex: String,
+}
+
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct SignRawTransactionWithWalletError {
+    error: Option<String>,
+    scriptSig: String,
+    sequence: u64,
+    txid: String,
+    vout: u64,
+    witness: Vec<String>,
+}
+
+///use for sign rawtransactions use it in [client::BitcoinRPC::create_raw_transaction]
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct PrevTX {
+    txid: String,
+    vout: u64,
+    scriptPubKey: String,
+}
+
+impl PrevTX {
+    #[allow(non_snake_case)]
+    pub fn new(txid: String, vout: u64, scriptPubKey: String) -> PrevTX {
+        Self {
+            txid,
+            vout,
+            scriptPubKey,
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct Sendrawtransaction {
+    error: Option<Error>,
+    id: u64,
+    result: Option<String>,
+}
+
