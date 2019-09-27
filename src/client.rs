@@ -1,14 +1,11 @@
-///This mod is used for build rpc client
+///!This mod is used for build rpc client
 use reqwest::{Client as ReqClient, Response, Error};
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use crate::config;
 use crate::api::Param;
 use std::cell::Cell;
 use crate::json::blockchaininfo::BlockChainInfo;
-use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo,
-                          ListWallets, AddressGroupings, Unspent, RawTransaction,
-                          TxIn, DecodeRawTransaction, SignRawTransactionWithWallet, PrevTX,
-                          Sendrawtransaction, SignRawTransactionWithWalletOutput};
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn, DecodeRawTransaction, SignRawTransactionWithWallet, PrevTX, Sendrawtransaction, SignRawTransactionWithWalletOutput, ValidateAddress, DumpPrivkey, Balance, NewAddress, GenerateToAddress, FundRawTransaction, GetTransaction};
 use serde_json::{Value, to_value};
 use std::collections::HashMap;
 use crate::json::simple;
@@ -106,7 +103,7 @@ impl BitcoinRPC {
     }
 
     /// !use it carefully
-    /// import privkey to wallet
+    /// import private_key to wallet
     /// label is optional
     /// in default bitcoin core will rescan ,it will take hours to do it, when in rescan you will not get the right info about the address until rescan finished
     fn import_private_key(&self, private_key: String, label: Option<String>) -> Result<Value, Error> {
@@ -138,12 +135,12 @@ impl BitcoinRPC {
     }
 
     /// see more default at [https://bitcoincore.org/en/doc/0.18.0/rpc/rawtransactions/createrawtransaction/]
-    pub fn create_raw_transaction(&self, txid: String, vout: u64, to_address: String, amount: f64) -> Result<RawTransaction, Error> {
+    pub fn create_raw_transaction(&self, txin: Vec<TxIn>, to_address: String, amount: f64) -> Result<RawTransaction, Error> {
         let mut address_amount = HashMap::new();
         address_amount.insert(to_address, amount);
 
         let params: [Value; 2] = [
-            to_value(&[TxIn::new(txid, vout)]).unwrap(),
+            to_value(&txin).unwrap(),
             to_value(&[address_amount]).unwrap(),
         ];
 
@@ -183,15 +180,105 @@ impl BitcoinRPC {
             .json()
     }
 
-    /// The pram allow_high_fee is set to allow high tx fee ,default = false.
-    pub fn send_rawtransaction(&self, signed_rawtransaction: String, allow_high_fee: Option<bool>) -> Result<Sendrawtransaction, Error> {
+    /// The pram allow_high_fee is set for allow high tx fee ,default = false.
+    pub fn send_rawtransaction(&self, signed_rawtransaction: String, allow_high_fee: bool) -> Result<Sendrawtransaction, Error> {
         let params = [
             to_value(&signed_rawtransaction).unwrap(),
             to_value(allow_high_fee).unwrap(),
         ];
 
-        self.send_raw("sendrawtransaction", params.to_owned().to_vec())
+        self
+            .send_raw("sendrawtransaction", params.to_owned().to_vec())
             .expect("I didn't send the transaction")
             .json()
     }
+
+    pub fn validate_address(&self, address: String) -> Result<ValidateAddress, Error> {
+        let params = [
+            to_value(&address).unwrap(),
+        ];
+
+        self
+            .send_raw("validateaddress", params.to_owned().to_vec())
+            .expect("I didn't validate the address")
+            .json()
+    }
+
+    pub fn dumpprivkey(&self, address: String) -> Result<DumpPrivkey, Error> {
+        let params = [
+            to_value(&address).unwrap(),
+        ];
+
+        self
+            .send_raw("dumpprivkey", params.to_owned().to_vec())
+            .expect("I didn't validate the address")
+            .json()
+    }
+
+    pub fn get_balance(&self) -> Result<Balance, Error> {
+        self
+            .send_raw("getbalance", Vec::new())
+            .expect("I didn't validate the address")
+            .json()
+    }
+
+    /// see more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/getnewaddress/]
+    /// you can add label in it
+    pub fn get_new_address(&self) -> Result<NewAddress, Error> {
+        self
+            .send_raw("getnewaddress", Vec::new())
+            .expect("I didn't validate the address")
+            .json()
+    }
+
+    /// see more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/generating/generatetoaddress/]
+    pub fn generate_to_address(&self, nblocks: u64, address: String) -> Result<GenerateToAddress, Error> {
+        let params = [
+            to_value(&nblocks).unwrap(),
+            to_value(&address).unwrap(),
+        ];
+
+        self
+            .send_raw("generatetoaddress", params.to_owned().to_vec())
+            .expect("I didn't generate to address")
+            .json()
+    }
+
+    /// FundRawTransaction with change
+    /// Add inputs to a transaction until it has enough in value to meet its out value.
+    /// There also have some other option in this function
+    /// See more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/rawtransactions/fundrawtransaction/]
+    pub fn fund_rawtransaction(&self, hex: String, change_address: String) -> Result<FundRawTransaction, Error> {
+        let mut addresses_map = HashMap::new();
+        addresses_map.insert("changeAddress".to_string(), change_address);
+
+        let params = [
+            to_value(&hex).unwrap(),
+            to_value(&addresses_map).unwrap(),
+        ];
+
+        self
+            .send_raw("fundrawtransaction", params.to_owned().to_vec())
+            .expect("I didn't fund raw transaction")
+            .json()
+    }
+
+    ///There is also have a simlar function called "getrawtransaction"
+    /// see more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/gettransaction/]
+    ///
+    /// Get detailed information about in-wallet transaction <txid>
+    pub fn get_transaction(&self, txid: String, include_watchonly: Option<bool>) -> Result<GetTransaction, Error> {
+        let mut params = Vec::new();
+        params.push(to_value(&txid).unwrap());
+
+        if let Some(include_watchonly) = include_watchonly {
+            params.push(to_value(&include_watchonly).unwrap());
+        }
+
+        self
+            .send_raw("gettransaction", params)
+            .expect("I didn't get transaction")
+            .json()
+    }
 }
+

@@ -109,13 +109,16 @@ pub struct RawTransaction {
 /// use this struct for RawTransaction , use it in [client::BitcoinRPC::create_raw_transaction()]
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct TxIn {
-    txid: String,
-    vout: u64,
+    txid: Option<String>,
+    vout: Option<u64>,
 }
 
 impl TxIn {
-    pub fn new(txid: String, vout: u64) -> Self {
-        Self { txid, vout }
+    pub fn new(txid: Option<String>, vout: Option<u64>) -> Self {
+        Self {
+            txid,
+            vout,
+        }
     }
 }
 
@@ -228,3 +231,100 @@ pub struct Sendrawtransaction {
     result: Option<String>,
 }
 
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct ValidateAddress {
+    error: Option<Error>,
+    id: u64,
+    result: Option<ValidateAddressOutput>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct ValidateAddressOutput {
+    isvalid: bool,
+    address: String,
+    scriptPubKey: String,
+    isscript: bool,
+    iswitness: bool,
+    witness_version: Option<f64>,
+    witness_program: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct DumpPrivkey {
+    error: Option<Error>,
+    id: u64,
+    result: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct Balance {
+    error: Option<Error>,
+    id: u64,
+    result: f64,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct NewAddress {
+    error: Option<Error>,
+    id: u64,
+    result: String,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct GenerateToAddress {
+    error: Option<Error>,
+    id: u64,
+    result: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct FundRawTransaction {
+    error: Option<Error>,
+    id: u64,
+    result: Option<FundRawTransactionOutput>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct FundRawTransactionOutput<> {
+    changepos: u64,
+    fee: f64,
+    hex: String,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct GetTransaction {
+    error: Option<Error>,
+    id: u64,
+    result: Option<GetTransactionOutput>,
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct GetTransactionOutput {
+    amount: f64,
+    #[serde(rename = "bip125-replaceable")]
+    bip125_replaceable: String,
+    confirmations: u64,
+    details: Vec<GetTransactionDetail>,
+    fee: f64,
+    hex: String,
+    time: u64,
+    timereceived: u64,
+    trusted: bool,
+    txid: String,
+    walletconflicts: Vec<String>,
+
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct GetTransactionDetail {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    abandoned: Option<bool>,
+    address: String,
+    amount: f64,
+    category: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fee: Option<f64>,
+    label: String,
+    vout: u64,
+}
