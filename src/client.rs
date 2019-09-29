@@ -5,7 +5,7 @@ use crate::config;
 use crate::api::Param;
 use std::cell::Cell;
 use crate::json::blockchaininfo::BlockChainInfo;
-use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn, DecodeRawTransaction, SignRawTransactionWithWallet, PrevTX, Sendrawtransaction, SignRawTransactionWithWalletOutput, ValidateAddress, DumpPrivkey, Balance, NewAddress, GenerateToAddress, FundRawTransaction, GetTransaction};
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn, DecodeRawTransaction, SignRawTransaction, PrevTX, Sendrawtransaction, SignRawTransactionWithWalletOutput, ValidateAddress, DumpPrivkey, Balance, NewAddress, GenerateToAddress, FundRawTransaction, GetTransaction};
 use serde_json::{Value, to_value};
 use std::collections::HashMap;
 use crate::json::simple;
@@ -121,27 +121,37 @@ impl BitcoinRPC {
     /// it still have another optional arguments, see detail at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/listunspent/]
     /// for simple i don't use it. maybe it will add in future
     /// consider using Option<HashMap<&str, &str>>
-    pub fn list_unspent(&self, minconf: Option<u64>, maxconf: Option<u64>, address: Vec<&'static str>) -> Result<Unspent, Error> {
-        let params = [
-            to_value(minconf).unwrap(),
-            to_value(maxconf).unwrap(),
-            to_value(address).unwrap(),
-        ];
+    ///
+    pub fn list_unspent(&self, minconf: Option<u64>, maxconf: Option<u64>, address: Option<Vec<&'static str>>) -> Result<Unspent, Error> {
+        let mut params = Vec::new();
+
+        if let Some(min) = minconf {
+            params.push(to_value(min).unwrap());
+        } else {
+            params.push(to_value(0).unwrap());
+        }
+
+        if let Some(max) = maxconf {
+            params.push(to_value(maxconf).unwrap());
+        } else {
+            params.push(to_value(9999999).unwrap());
+        }
+
+        if let Some(addr) = address {
+            params.push(to_value(addr).unwrap());
+        }
 
         self
-            .send_raw("listunspent", params.to_owned().to_vec())
+            .send_raw("listunspent", params)
             .expect("I didn't get listunspent")
             .json()
     }
 
     /// see more default at [https://bitcoincore.org/en/doc/0.18.0/rpc/rawtransactions/createrawtransaction/]
-    pub fn create_raw_transaction(&self, txin: Vec<TxIn>, to_address: String, amount: f64) -> Result<RawTransaction, Error> {
-        let mut address_amount = HashMap::new();
-        address_amount.insert(to_address, amount);
-
+    pub fn create_raw_transaction(&self, txin: Vec<TxIn>, to_address: HashMap<String, f64>) -> Result<RawTransaction, Error> {
         let params: [Value; 2] = [
             to_value(&txin).unwrap(),
-            to_value(&[address_amount]).unwrap(),
+            to_value(to_address).unwrap(),
         ];
 
         self
@@ -169,7 +179,7 @@ impl BitcoinRPC {
     ///
     /// txid vout and script_pub_key build prevtxs ( It's all comes from prevtxs you can find it in Result Value of function "list_unspent"
     ///
-    pub fn sign_rawtransaction_with_wallet(&self, rawtransaction: String) -> Result<SignRawTransactionWithWallet, Error> {
+    pub fn sign_rawtransaction_with_wallet(&self, rawtransaction: String) -> Result<SignRawTransaction, Error> {
         let params = [
             to_value(&rawtransaction).unwrap(),
         ];
@@ -177,6 +187,18 @@ impl BitcoinRPC {
         self
             .send_raw("signrawtransactionwithwallet", params.to_owned().to_vec())
             .expect("I didn't signrawtransactionwithwallet")
+            .json()
+    }
+
+    pub fn sign_rawtransaction_with_key(&self, rawtransaction: String, private_key: String) -> Result<SignRawTransaction, Error> {
+        let params = [
+            to_value(&rawtransaction).unwrap(),
+            to_value(&[private_key]).unwrap()
+        ];
+
+        self
+            .send_raw("signrawtransactionwithkey", params.to_owned().to_vec())
+            .expect("I didn't signrawtransactionwithkey")
             .json()
     }
 
@@ -224,9 +246,14 @@ impl BitcoinRPC {
 
     /// see more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/getnewaddress/]
     /// you can add label in it
-    pub fn get_new_address(&self) -> Result<NewAddress, Error> {
+    pub fn get_new_address(&self, label: Option<String>) -> Result<NewAddress, Error> {
+        let mut params = Vec::new();
+        if let Some(label) = label {
+            params.push(to_value(label).unwrap());
+        }
+
         self
-            .send_raw("getnewaddress", Vec::new())
+            .send_raw("getnewaddress", params)
             .expect("I didn't validate the address")
             .json()
     }
@@ -263,10 +290,9 @@ impl BitcoinRPC {
             .json()
     }
 
-    ///There is also have a simlar function called "getrawtransaction"
+    ///Get detailed information about in-wallet transaction <txid>
+    /// There is also have a simlar function called "getrawtransaction"
     /// see more details at [https://bitcoincore.org/en/doc/0.18.0/rpc/wallet/gettransaction/]
-    ///
-    /// Get detailed information about in-wallet transaction <txid>
     pub fn get_transaction(&self, txid: String, include_watchonly: Option<bool>) -> Result<GetTransaction, Error> {
         let mut params = Vec::new();
         params.push(to_value(&txid).unwrap());

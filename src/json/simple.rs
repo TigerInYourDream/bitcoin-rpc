@@ -109,12 +109,12 @@ pub struct RawTransaction {
 /// use this struct for RawTransaction , use it in [client::BitcoinRPC::create_raw_transaction()]
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct TxIn {
-    txid: Option<String>,
-    vout: Option<u64>,
+    txid: String,
+    vout: u64,
 }
 
 impl TxIn {
-    pub fn new(txid: Option<String>, vout: Option<u64>) -> Self {
+    pub fn new(txid: String, vout: u64) -> Self {
         Self {
             txid,
             vout,
@@ -178,7 +178,7 @@ pub struct ScriptPubKey {
 }
 
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
-pub struct SignRawTransactionWithWallet {
+pub struct SignRawTransaction {
     error: Option<Error>,
     id: u64,
     result: Option<SignRawTransactionWithWalletOutput>,
