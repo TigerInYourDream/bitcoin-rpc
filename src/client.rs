@@ -5,7 +5,7 @@ use crate::config;
 use crate::api::Param;
 use std::cell::Cell;
 use crate::json::blockchaininfo::BlockChainInfo;
-use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn, DecodeRawTransaction, SignRawTransaction, PrevTX, Sendrawtransaction, SignRawTransactionWithWalletOutput, ValidateAddress, DumpPrivkey, Balance, NewAddress, GenerateToAddress, FundRawTransaction, GetTransaction};
+use crate::json::simple::{BlockCount, BestBlockHash, ConnectionCount, Difficulty, WalletInfo, ListWallets, AddressGroupings, Unspent, RawTransaction, TxIn, DecodeRawTransaction, SignRawTransaction, PrevTX, Sendrawtransaction, SignRawTransactionWithWalletOutput, ValidateAddress, DumpPrivkey, Balance, NewAddress, GenerateToAddress, FundRawTransaction, GetTransaction, SignOffline};
 use serde_json::{Value, to_value};
 use std::collections::HashMap;
 use crate::json::simple;
@@ -199,6 +199,21 @@ impl BitcoinRPC {
         self
             .send_raw("signrawtransactionwithkey", params.to_owned().to_vec())
             .expect("I didn't signrawtransactionwithkey")
+            .json()
+    }
+
+    ///There isn't a function called sign_rawtransaction_offline in bitcoin-rpc api, this is same function as sign_rawtransaction_with_wallet
+    /// I built this for easy to sign raw transaction offline
+    #[allow(non_snake_case)]
+    pub fn sign_rawtransaction_offline(&self, rawtransaction: String, txid: String, vout: u64, scriptPubKey: String, amount: f64) -> Result<SignRawTransaction, Error> {
+        let params = [
+            to_value(rawtransaction).unwrap(),
+            to_value(&[SignOffline::new(txid, vout, scriptPubKey, amount)]).unwrap(),
+        ];
+
+        self
+            .send_raw("signrawtransactionwithwallet", params.to_owned().to_vec())
+            .expect("I didn't signrawtransactionwithwallet")
             .json()
     }
 

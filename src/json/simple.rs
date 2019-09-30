@@ -328,3 +328,24 @@ pub struct GetTransactionDetail {
     label: String,
     vout: u64,
 }
+
+/// This struct is build for sign_rawtransaction_offline, build for params
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct SignOffline {
+    txid: String,
+    vout: u64,
+    scriptPubKey: String,
+    amount: f64,
+}
+
+impl SignOffline {
+    pub fn new(txid: String, vout: u64, script_pub_key: String, amount: f64) -> SignOffline {
+        Self {
+            txid,
+            vout,
+            scriptPubKey: script_pub_key,
+            amount,
+        }
+    }
+}
