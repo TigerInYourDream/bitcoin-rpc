@@ -13,8 +13,11 @@ use std::collections::HashMap;
 
 fn main() -> Result<(), reqwest::Error> {
     let rpc = client::BitcoinRPC::new();
-    
+    let balance =rpc.get_balance().unwrap();
+    println!("{:?}", balance);
 
+    let new_address:NewAddress = rpc.get_new_address(None).unwrap();
+    println!("{:?}", new_address);
 
     Ok(())
 }
